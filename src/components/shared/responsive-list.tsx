@@ -20,21 +20,23 @@ export function ResponsiveList<T extends { id: string }>({
   return (
     <>
       {/* Mobile: cards */}
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-2 md:hidden">
         {data.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8">
             {emptyMessage}
           </p>
         ) : (
-          data.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-lg border bg-card p-4 transition-transform active:scale-[0.98] cursor-pointer"
-              onClick={() => onItemClick?.(item)}
-            >
-              {renderCard(item)}
-            </div>
-          ))
+          <div className="rounded-xl border bg-card overflow-hidden divide-y">
+            {data.map((item) => (
+              <div
+                key={item.id}
+                className="px-4 py-3.5 transition-colors active:bg-accent/50 cursor-pointer"
+                onClick={() => onItemClick?.(item)}
+              >
+                {renderCard(item)}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

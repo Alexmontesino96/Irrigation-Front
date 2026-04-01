@@ -11,7 +11,7 @@ import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Pagination } from "@/components/shared/pagination";
 import { api } from "@/lib/api";
 import type { Client, PaginatedResponse } from "@/lib/types";
-import { Plus, Search, Phone, Mail } from "lucide-react";
+import { Plus, Search, Phone, Mail, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -109,7 +109,7 @@ export default function ClientsPage() {
             setActiveFilter(e.target.value);
             setPage(1);
           }}
-          className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-10 rounded-md border border-input bg-background px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:text-sm"
         >
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
@@ -127,17 +127,17 @@ export default function ClientsPage() {
             onItemClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
             emptyMessage="No se encontraron clientes"
             renderCard={(c) => (
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-base font-semibold truncate">
                       {c.first_name} {c.last_name}
                     </p>
-                    <Badge variant={c.is_active ? "default" : "secondary"} className="shrink-0">
+                    <Badge variant={c.is_active ? "default" : "secondary"} className="shrink-0 text-xs">
                       {c.is_active ? "Activo" : "Inactivo"}
                     </Badge>
                   </div>
-                  <div className="mt-1.5 flex flex-col gap-1 text-sm text-muted-foreground">
+                  <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
                     {c.phone && (
                       <span className="flex items-center gap-1.5">
                         <Phone className="h-3.5 w-3.5" />
@@ -152,6 +152,7 @@ export default function ClientsPage() {
                     )}
                   </div>
                 </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground/50 shrink-0" />
               </div>
             )}
           />

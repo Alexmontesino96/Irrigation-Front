@@ -176,6 +176,8 @@ export interface Job {
   price: number | null;
   reminder_days: number[] | null;
   notes: string | null;
+  client_name: string | null;
+  property_name: string | null;
   created_at: string;
   updated_at: string;
 }
