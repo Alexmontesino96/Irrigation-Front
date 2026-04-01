@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { ScaleProvider, useScale } from "@/lib/scale-context";
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -13,12 +14,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
         <main
-          className="flex-1 overflow-y-auto p-4 md:p-6 origin-top-left"
+          className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6 origin-top-left"
           style={{ zoom: scale }}
         >
           {children}
         </main>
       </div>
+      <BottomNav />
     </div>
   );
 }

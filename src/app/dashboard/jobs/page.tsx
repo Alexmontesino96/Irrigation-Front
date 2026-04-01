@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Pagination } from "@/components/shared/pagination";
 import { api } from "@/lib/api";
 import type { Job, PaginatedResponse } from "@/lib/types";
@@ -17,7 +18,7 @@ import {
   type JobStatus,
   type JobType,
 } from "@/lib/types";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, CalendarDays, DollarSign } from "lucide-react";
 
 const PAGE_SIZE = 15;
 
@@ -99,7 +100,7 @@ export default function JobsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1>Trabajos</h1>
-        <Link href="/dashboard/jobs/new" className={buttonVariants()}>
+        <Link href="/dashboard/jobs/new" className={buttonVariants({ className: "h-10 px-4 md:h-8 md:px-2.5" })}>
           <Plus className="mr-2 h-4 w-4" />
           Nuevo trabajo
         </Link>
@@ -157,11 +158,34 @@ export default function JobsPage() {
         <p className="text-muted-foreground">Cargando...</p>
       ) : data ? (
         <>
-          <DataTable
+          <ResponsiveList
             columns={columns}
             data={data.items}
-            onRowClick={(j) => router.push(`/dashboard/jobs/${j.id}`)}
+            onItemClick={(j) => router.push(`/dashboard/jobs/${j.id}`)}
             emptyMessage="No se encontraron trabajos"
+            renderCard={(j) => (
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium truncate">{j.title}</p>
+                  <Badge variant={STATUS_COLORS[j.status] ?? "secondary"} className="shrink-0">
+                    {JOB_STATUS_LABELS[j.status] ?? j.status}
+                  </Badge>
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span>{JOB_TYPE_LABELS[j.job_type] ?? j.job_type}</span>
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {j.scheduled_date}
+                  </span>
+                  {j.price != null && (
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="h-3.5 w-3.5" />
+                      {j.price.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           />
           <Pagination
             page={data.page}

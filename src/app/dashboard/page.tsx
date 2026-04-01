@@ -107,14 +107,14 @@ export default function DashboardPage() {
       <div className="flex flex-wrap gap-2">
         <Link
           href="/dashboard/clients/new"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
+          className={buttonVariants({ variant: "outline", size: "sm", className: "h-12 text-base sm:h-8 sm:text-sm" })}
         >
           <Plus className="mr-2 h-4 w-4" />
           Nuevo cliente
         </Link>
         <Link
           href="/dashboard/jobs/new"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
+          className={buttonVariants({ variant: "outline", size: "sm", className: "h-12 text-base sm:h-8 sm:text-sm" })}
         >
           <Plus className="mr-2 h-4 w-4" />
           Nuevo trabajo
@@ -123,12 +123,12 @@ export default function DashboardPage() {
 
       {/* Stats cards */}
       {stats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card
             className="cursor-pointer hover:bg-accent/50"
             onClick={() => router.push("/dashboard/clients")}
           >
-            <CardContent className="flex items-center gap-4 p-4">
+            <CardContent className="flex items-center gap-4 p-3 md:p-4">
               <div className="rounded-lg bg-primary/10 p-2">
                 <Users className="h-5 w-5 text-primary" />
               </div>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
             className="cursor-pointer hover:bg-accent/50"
             onClick={() => router.push("/dashboard/jobs")}
           >
-            <CardContent className="flex items-center gap-4 p-4">
+            <CardContent className="flex items-center gap-4 p-3 md:p-4">
               <div className="rounded-lg bg-chart-2/15 p-2">
                 <Briefcase className="h-5 w-5 text-chart-2" />
               </div>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
             className="cursor-pointer hover:bg-accent/50"
             onClick={() => router.push("/dashboard/reminders")}
           >
-            <CardContent className="flex items-center gap-4 p-4">
+            <CardContent className="flex items-center gap-4 p-3 md:p-4">
               <div className="rounded-lg bg-chart-3/15 p-2">
                 <Bell className="h-5 w-5 text-chart-3" />
               </div>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
           </Card>
           {stats.overdueJobs > 0 && (
             <Card className="border-destructive/50">
-              <CardContent className="flex items-center gap-4 p-4">
+              <CardContent className="flex items-center gap-4 p-3 md:p-4">
                 <div className="rounded-lg bg-destructive/10 p-2">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
                 </div>
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-9 text-xs md:h-7"
                           onClick={() => setCompleteJob(j)}
                         >
                           <CheckCircle className="mr-1 h-3 w-3" />
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-9 text-xs md:h-7"
                           onClick={() => setRescheduleJob(j)}
                         >
                           <CalendarClock className="mr-1 h-3 w-3" />

@@ -22,6 +22,7 @@ export function Pagination({ page, pages, total, onPageChange }: PaginationProps
         <Button
           variant="outline"
           size="sm"
+          className="h-10 w-10 md:h-7 md:w-auto"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
         >
@@ -33,6 +34,7 @@ export function Pagination({ page, pages, total, onPageChange }: PaginationProps
         <Button
           variant="outline"
           size="sm"
+          className="h-10 w-10 md:h-7 md:w-auto"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= pages}
         >

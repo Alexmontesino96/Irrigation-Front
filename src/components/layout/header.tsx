@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,16 +10,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { MobileSidebar } from "./mobile-sidebar";
 import { ThemeToggle } from "./theme-toggle";
 import { ScaleControl } from "./scale-control";
-import { LogOut, Menu, User } from "lucide-react";
+import { navItems } from "@/lib/nav-items";
+import { LogOut, User } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export function Header() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   useEffect(() => {
@@ -37,24 +37,23 @@ export function Header() {
     user?.email?.split("@")[0] ||
     "Usuario";
 
+  const currentPage = navItems.find((item) =>
+    item.href === "/dashboard"
+      ? pathname === "/dashboard"
+      : pathname.startsWith(item.href)
+  );
+
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-card px-4">
-      <Sheet>
-        <SheetTrigger
-          render={
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-          }
-        />
-        <SheetContent side="left" className="w-60 p-0">
-          <MobileSidebar />
-        </SheetContent>
-      </Sheet>
+      <span className="text-base font-semibold md:hidden">
+        {currentPage?.label ?? "IrrigationCRM"}
+      </span>
 
       <div className="flex-1" />
 
-      <ScaleControl />
+      <div className="hidden md:flex">
+        <ScaleControl />
+      </div>
 
       <ThemeToggle />
 

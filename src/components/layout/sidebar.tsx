@@ -3,21 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  Users,
-  Briefcase,
-  Bell,
-  CalendarDays,
-  LayoutDashboard,
-} from "lucide-react";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/clients", label: "Clientes", icon: Users },
-  { href: "/dashboard/jobs", label: "Trabajos", icon: Briefcase },
-  { href: "/dashboard/reminders", label: "Recordatorios", icon: Bell },
-  { href: "/dashboard/calendar", label: "Calendario", icon: CalendarDays },
-];
+import { navItems } from "@/lib/nav-items";
 
 export function Sidebar() {
   const pathname = usePathname();

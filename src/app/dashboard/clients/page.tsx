@@ -7,10 +7,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Pagination } from "@/components/shared/pagination";
 import { api } from "@/lib/api";
 import type { Client, PaginatedResponse } from "@/lib/types";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Phone, Mail } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -84,7 +85,7 @@ export default function ClientsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1>Clientes</h1>
-        <Link href="/dashboard/clients/new" className={buttonVariants()}>
+        <Link href="/dashboard/clients/new" className={buttonVariants({ className: "h-10 px-4 md:h-8 md:px-2.5" })}>
           <Plus className="mr-2 h-4 w-4" />
           Nuevo cliente
         </Link>
@@ -120,11 +121,39 @@ export default function ClientsPage() {
         <p className="text-muted-foreground">Cargando...</p>
       ) : data ? (
         <>
-          <DataTable
+          <ResponsiveList
             columns={columns}
             data={data.items}
-            onRowClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
+            onItemClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
             emptyMessage="No se encontraron clientes"
+            renderCard={(c) => (
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium truncate">
+                      {c.first_name} {c.last_name}
+                    </p>
+                    <Badge variant={c.is_active ? "default" : "secondary"} className="shrink-0">
+                      {c.is_active ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </div>
+                  <div className="mt-1.5 flex flex-col gap-1 text-sm text-muted-foreground">
+                    {c.phone && (
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5" />
+                        {c.phone}
+                      </span>
+                    )}
+                    {c.email && (
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        {c.email}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           />
           <Pagination
             page={data.page}
