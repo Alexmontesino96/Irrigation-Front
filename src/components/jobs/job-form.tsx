@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { api, FetchError } from "@/lib/api";
 import type {
   Job,
@@ -26,11 +19,14 @@ import {
   JOB_STATUS,
   JOB_STATUS_LABELS,
 } from "@/lib/types";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 
 interface JobFormProps {
   job?: Job;
 }
+
+const selectClass =
+  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50";
 
 export function JobForm({ job }: JobFormProps) {
   const router = useRouter();
@@ -58,7 +54,6 @@ export function JobForm({ job }: JobFormProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Load clients
   useEffect(() => {
     api
       .get<PaginatedResponse<Client>>("/api/clients?size=100")
@@ -66,7 +61,6 @@ export function JobForm({ job }: JobFormProps) {
       .catch(() => {});
   }, []);
 
-  // Load properties when client selected
   const fetchProperties = useCallback(async (clientId: string) => {
     if (!clientId) {
       setProperties([]);
@@ -82,10 +76,8 @@ export function JobForm({ job }: JobFormProps) {
     }
   }, []);
 
-  // On edit, find which client owns the property
   useEffect(() => {
     if (isEditing && job.property_id && clients.length > 0) {
-      // Try each client to find the property
       (async () => {
         for (const c of clients) {
           try {
@@ -169,238 +161,240 @@ export function JobForm({ job }: JobFormProps) {
   }
 
   return (
-    <Card className="max-w-lg">
-      <CardHeader>
-        <CardTitle>{isEditing ? "Editar trabajo" : "Nuevo trabajo"}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Client + Property selectors (only on create) */}
-          {!isEditing && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="client">Cliente *</Label>
-                <select
-                  id="client"
-                  value={selectedClientId}
-                  onChange={handleClientChange}
-                  required
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Seleccionar cliente...</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="property_id">Propiedad *</Label>
-                <select
-                  id="property_id"
-                  name="property_id"
-                  value={form.property_id}
-                  onChange={handleChange}
-                  required
-                  disabled={!selectedClientId}
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                >
-                  <option value="">
-                    {selectedClientId
-                      ? "Seleccionar propiedad..."
-                      : "Primero selecciona un cliente"}
+    <div className="max-w-lg">
+      <h1 className="mb-6">{isEditing ? "Editar trabajo" : "Nuevo trabajo"}</h1>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {!isEditing && (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="client" className="text-xs font-medium text-muted-foreground">Cliente *</Label>
+              <select
+                id="client"
+                value={selectedClientId}
+                onChange={handleClientChange}
+                required
+                className={selectClass}
+              >
+                <option value="">Seleccionar cliente...</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.first_name} {c.last_name}
                   </option>
-                  {properties.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {p.address}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="property_id" className="text-xs font-medium text-muted-foreground">Propiedad *</Label>
+              <select
+                id="property_id"
+                name="property_id"
+                value={form.property_id}
+                onChange={handleChange}
+                required
+                disabled={!selectedClientId}
+                className={selectClass}
+              >
+                <option value="">
+                  {selectedClientId
+                    ? "Seleccionar propiedad..."
+                    : "Primero selecciona un cliente"}
+                </option>
+                {properties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.address}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="title">Titulo *</Label>
-            <Input
-              id="title"
-              name="title"
-              value={form.title}
+        <div className="space-y-1.5">
+          <Label htmlFor="title" className="text-xs font-medium text-muted-foreground">Titulo *</Label>
+          <Input
+            id="title"
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            required
+            maxLength={255}
+            placeholder="Ej: Mantenimiento trimestral"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="job_type" className="text-xs font-medium text-muted-foreground">Tipo</Label>
+            <select
+              id="job_type"
+              name="job_type"
+              value={form.job_type}
               onChange={handleChange}
-              required
-              maxLength={255}
-              placeholder="Ej: Mantenimiento trimestral"
-            />
+              className={selectClass}
+            >
+              {Object.entries(JOB_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="job_type">Tipo</Label>
+          {isEditing && (
+            <div className="space-y-1.5">
+              <Label htmlFor="status" className="text-xs font-medium text-muted-foreground">Estado</Label>
               <select
-                id="job_type"
-                name="job_type"
-                value={form.job_type}
+                id="status"
+                name="status"
+                value={form.status}
                 onChange={handleChange}
-                className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className={selectClass}
               >
-                {Object.entries(JOB_TYPE_LABELS).map(([value, label]) => (
+                {Object.entries(JOB_STATUS_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
               </select>
             </div>
-
-            {isEditing && (
-              <div className="space-y-2">
-                <Label htmlFor="status">Estado</Label>
-                <select
-                  id="status"
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  {Object.entries(JOB_STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="scheduled_date">Fecha programada *</Label>
-              <Input
-                id="scheduled_date"
-                name="scheduled_date"
-                type="date"
-                value={form.scheduled_date}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="price">Precio ($)</Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                min={0}
-                step={0.01}
-                value={form.price}
-                onChange={handleChange}
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-
-          {isEditing && form.status === JOB_STATUS.COMPLETED && (
-            <div className="space-y-2">
-              <Label htmlFor="completed_date">Fecha completado</Label>
-              <Input
-                id="completed_date"
-                name="completed_date"
-                type="date"
-                value={form.completed_date}
-                onChange={handleChange}
-              />
-            </div>
           )}
+        </div>
 
-          {/* Reminder Days */}
-          <div className="space-y-2">
-            <Label>Dias de recordatorio</Label>
-            <p className="text-xs text-muted-foreground">
-              Al completar el trabajo, se crearan recordatorios automaticos
-              estos dias despues.
-            </p>
-            <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="scheduled_date" className="text-xs font-medium text-muted-foreground">Fecha programada *</Label>
+            <Input
+              id="scheduled_date"
+              name="scheduled_date"
+              type="date"
+              value={form.scheduled_date}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="price" className="text-xs font-medium text-muted-foreground">Precio ($)</Label>
+            <Input
+              id="price"
+              name="price"
+              type="number"
+              min={0}
+              step={0.01}
+              value={form.price}
+              onChange={handleChange}
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+
+        {isEditing && form.status === JOB_STATUS.COMPLETED && (
+          <div className="space-y-1.5">
+            <Label htmlFor="completed_date" className="text-xs font-medium text-muted-foreground">Fecha completado</Label>
+            <Input
+              id="completed_date"
+              name="completed_date"
+              type="date"
+              value={form.completed_date}
+              onChange={handleChange}
+            />
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Dias de recordatorio</Label>
+          <p className="text-xs text-muted-foreground">
+            Al completar el trabajo, se crearan recordatorios automaticos
+            estos dias despues.
+          </p>
+          {reminderDays.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
               {reminderDays.map((day) => (
-                <Badge key={day} variant="secondary" className="gap-1">
-                  {day} dias
+                <span key={day} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs">
+                  {day}d
                   <button
                     type="button"
                     onClick={() => removeReminderDay(day)}
-                    className="ml-1 hover:text-destructive"
+                    className="hover:text-destructive"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Badge>
+                </span>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                min={1}
-                value={newReminderDay}
-                onChange={(e) => setNewReminderDay(e.target.value)}
-                placeholder="Ej: 30"
-                className="w-24"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addReminderDay();
-                  }
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addReminderDay}
-              >
-                Agregar
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descripcion</Label>
-            <Textarea
-              id="description"
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              rows={2}
+          )}
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min={1}
+              value={newReminderDay}
+              onChange={(e) => setNewReminderDay(e.target.value)}
+              placeholder="Ej: 30"
+              className="w-24"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addReminderDay();
+                }
+              }}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notas</Label>
-            <Textarea
-              id="notes"
-              name="notes"
-              value={form.notes}
-              onChange={handleChange}
-              rows={2}
-            />
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex gap-3">
-            <Button type="submit" disabled={loading}>
-              {loading
-                ? "Guardando..."
-                : isEditing
-                  ? "Guardar cambios"
-                  : "Crear trabajo"}
-            </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
+              size="sm"
+              onClick={addReminderDay}
             >
-              Cancelar
+              Agregar
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="description" className="text-xs font-medium text-muted-foreground">Descripcion</Label>
+          <Textarea
+            id="description"
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            rows={2}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="notes" className="text-xs font-medium text-muted-foreground">Notas</Label>
+          <Textarea
+            id="notes"
+            name="notes"
+            value={form.notes}
+            onChange={handleChange}
+            rows={2}
+          />
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-md bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <Button type="submit" size="sm" disabled={loading}>
+            {loading
+              ? "Guardando..."
+              : isEditing
+                ? "Guardar cambios"
+                : "Crear trabajo"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+          >
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

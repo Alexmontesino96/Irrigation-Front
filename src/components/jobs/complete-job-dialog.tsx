@@ -67,8 +67,8 @@ export function CompleteJobDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="completed-date">Fecha completado</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="completed-date" className="text-xs font-medium text-muted-foreground">Fecha completado</Label>
             <Input
               id="completed-date"
               type="date"
@@ -76,8 +76,8 @@ export function CompleteJobDialog({
               onChange={(e) => setCompletedDate(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="completion-note">
+          <div className="space-y-1.5">
+            <Label htmlFor="completion-note" className="text-xs font-medium text-muted-foreground">
               Notas de cierre (opcional)
             </Label>
             <Textarea
@@ -91,13 +91,14 @@ export function CompleteJobDialog({
         </div>
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button size="sm" onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Completando..." : "Completar"}
           </Button>
         </DialogFooter>

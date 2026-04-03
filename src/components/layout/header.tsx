@@ -44,8 +44,8 @@ export function Header() {
   );
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-card px-4">
-      <span className="text-base font-semibold md:hidden">
+    <header className="flex h-12 items-center gap-4 border-b border-border/60 bg-background px-4">
+      <span className="text-sm font-medium md:hidden">
         {currentPage?.label ?? "IrrigationCRM"}
       </span>
 

@@ -2,25 +2,30 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Pagination } from "@/components/shared/pagination";
+import { StatusIndicator } from "@/components/shared/status-indicator";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ReminderFormDialog } from "@/components/reminders/reminder-form-dialog";
 import { api, FetchError } from "@/lib/api";
 import type { Reminder, PaginatedResponse } from "@/lib/types";
 import { REMINDER_STATUS_LABELS } from "@/lib/types";
 import { Input } from "@/components/ui/input";
-import { Plus, Clock, CheckCircle, XCircle, Bot, User, Search } from "lucide-react";
+import { Plus, CheckCircle, XCircle, Bot, User, Search, Inbox } from "lucide-react";
 
 const PAGE_SIZE = 15;
 
-const STATUS_ICON: Record<string, typeof Clock> = {
-  pending: Clock,
-  completed: CheckCircle,
-  cancelled: XCircle,
-};
+function RemindersSkeleton() {
+  return (
+    <div className="space-y-0 divide-y divide-border/40">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="py-3">
+          <div className="skeleton h-10 w-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function RemindersPage() {
   const [tab, setTab] = useState("upcoming");
@@ -39,7 +44,6 @@ export default function RemindersPage() {
     action: "complete" | "cancel";
   } | null>(null);
 
-  // Fetch upcoming
   const fetchUpcoming = useCallback(async () => {
     setLoading(true);
     try {
@@ -52,7 +56,6 @@ export default function RemindersPage() {
     }
   }, [days]);
 
-  // Fetch all
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -97,71 +100,65 @@ export default function RemindersPage() {
   }
 
   const selectClass =
-    "flex h-8 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+    "flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
-  function ReminderCard({ reminder }: { reminder: Reminder }) {
-    const Icon = STATUS_ICON[reminder.status] ?? Clock;
+  function ReminderRow({ reminder }: { reminder: Reminder }) {
     const isPending = reminder.status === "pending";
 
     return (
-      <Card>
-        <CardContent className="flex items-center gap-3 p-3">
-          <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium truncate">{reminder.title}</p>
-              <span title={reminder.is_auto_generated ? "Auto-generado" : "Manual"}>
-                {reminder.is_auto_generated ? (
-                  <Bot className="h-3 w-3 text-muted-foreground shrink-0" />
-                ) : (
-                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                )}
-              </span>
+      <div className="flex items-center gap-3 py-2.5">
+        <StatusIndicator
+          status={reminder.status}
+          label=""
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium truncate">{reminder.title}</p>
+            <span title={reminder.is_auto_generated ? "Auto-generado" : "Manual"}>
+              {reminder.is_auto_generated ? (
+                <Bot className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+              ) : (
+                <User className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+              )}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {reminder.remind_date}
+            {reminder.description && ` — ${reminder.description}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <StatusIndicator
+            status={reminder.status}
+            label={REMINDER_STATUS_LABELS[reminder.status] ?? reminder.status}
+          />
+          {isPending && (
+            <div className="flex gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Completar"
+                onClick={() =>
+                  setActionTarget({ reminder, action: "complete" })
+                }
+              >
+                <CheckCircle className="h-3.5 w-3.5 text-[var(--status-completed)]" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Cancelar"
+                onClick={() =>
+                  setActionTarget({ reminder, action: "cancel" })
+                }
+              >
+                <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {reminder.remind_date}
-              {reminder.description && ` — ${reminder.description}`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge
-              variant={
-                reminder.status === "completed"
-                  ? "default"
-                  : reminder.status === "cancelled"
-                    ? "destructive"
-                    : "secondary"
-              }
-            >
-              {REMINDER_STATUS_LABELS[reminder.status] ?? reminder.status}
-            </Badge>
-            {isPending && (
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  title="Completar"
-                  onClick={() =>
-                    setActionTarget({ reminder, action: "complete" })
-                  }
-                >
-                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  title="Cancelar"
-                  onClick={() =>
-                    setActionTarget({ reminder, action: "cancel" })
-                  }
-                >
-                  <XCircle className="h-3.5 w-3.5 text-destructive" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -169,8 +166,8 @@ export default function RemindersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1>Recordatorios</h1>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button size="sm" className="h-10 md:h-8" onClick={() => setFormOpen(true)}>
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
           Nuevo
         </Button>
       </div>
@@ -184,7 +181,7 @@ export default function RemindersPage() {
         <TabsContent value="upcoming">
           <div className="space-y-4">
             <div className="flex gap-2 items-center">
-              <label className="text-sm text-muted-foreground">
+              <label className="text-xs text-muted-foreground">
                 Proximos
               </label>
               <select
@@ -201,15 +198,16 @@ export default function RemindersPage() {
             </div>
 
             {loading ? (
-              <p className="text-muted-foreground">Cargando...</p>
+              <RemindersSkeleton />
             ) : upcoming.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No hay recordatorios proximos.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Inbox className="h-8 w-8 mb-2 opacity-40" />
+                <p className="text-sm">No hay recordatorios proximos</p>
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="divide-y divide-border/40">
                 {upcoming.map((r) => (
-                  <ReminderCard key={r.id} reminder={r} />
+                  <ReminderRow key={r.id} reminder={r} />
                 ))}
               </div>
             )}
@@ -254,16 +252,17 @@ export default function RemindersPage() {
             </div>
 
             {loading ? (
-              <p className="text-muted-foreground">Cargando...</p>
+              <RemindersSkeleton />
             ) : allData && allData.items.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No se encontraron recordatorios.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Inbox className="h-8 w-8 mb-2 opacity-40" />
+                <p className="text-sm">No se encontraron recordatorios</p>
+              </div>
             ) : allData ? (
               <>
-                <div className="space-y-2">
+                <div className="divide-y divide-border/40">
                   {allData.items.map((r) => (
-                    <ReminderCard key={r.id} reminder={r} />
+                    <ReminderRow key={r.id} reminder={r} />
                   ))}
                 </div>
                 <Pagination

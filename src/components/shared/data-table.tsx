@@ -30,12 +30,15 @@ export function DataTable<T extends { id: string }>({
   emptyMessage = "No hay datos",
 }: DataTableProps<T>) {
   return (
-    <div className="rounded-md border">
+    <div className="rounded-lg border border-border/60 overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="hover:bg-transparent">
             {columns.map((col) => (
-              <TableHead key={col.key} className={col.className}>
+              <TableHead
+                key={col.key}
+                className={`h-9 text-xs uppercase tracking-wider text-muted-foreground px-3 ${col.className ?? ""}`}
+              >
                 {col.header}
               </TableHead>
             ))}
@@ -46,7 +49,7 @@ export function DataTable<T extends { id: string }>({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="h-24 text-center text-muted-foreground"
+                className="h-24 text-center text-sm text-muted-foreground"
               >
                 {emptyMessage}
               </TableCell>
@@ -55,11 +58,11 @@ export function DataTable<T extends { id: string }>({
             data.map((item) => (
               <TableRow
                 key={item.id}
-                className={onRowClick ? "cursor-pointer" : ""}
+                className={`border-border/40 hover:bg-muted/50 ${onRowClick ? "cursor-pointer" : ""}`}
                 onClick={() => onRowClick?.(item)}
               >
                 {columns.map((col) => (
-                  <TableCell key={col.key} className={col.className}>
+                  <TableCell key={col.key} className={`px-3 py-2.5 text-[13px] ${col.className ?? ""}`}>
                     {col.render
                       ? col.render(item)
                       : (item as Record<string, unknown>)[col.key] as React.ReactNode}

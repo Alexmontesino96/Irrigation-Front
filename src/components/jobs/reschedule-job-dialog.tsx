@@ -57,8 +57,8 @@ export function RescheduleJobDialog({
             Nueva fecha para &quot;{job.title}&quot;
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label htmlFor="new-date">Nueva fecha programada</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="new-date" className="text-xs font-medium text-muted-foreground">Nueva fecha programada</Label>
           <Input
             id="new-date"
             type="date"
@@ -69,13 +69,15 @@ export function RescheduleJobDialog({
         </div>
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
             Cancelar
           </Button>
           <Button
+            size="sm"
             onClick={handleSubmit}
             disabled={submitting || !scheduledDate}
           >

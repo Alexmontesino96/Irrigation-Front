@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import { StatusIndicator } from "@/components/shared/status-indicator";
+import { type Column } from "@/components/shared/data-table";
 import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Pagination } from "@/components/shared/pagination";
 import { api } from "@/lib/api";
 import type { Client, PaginatedResponse } from "@/lib/types";
-import { Plus, Search, Phone, Mail, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -36,13 +36,22 @@ const columns: Column<Client>[] = [
   {
     key: "is_active",
     header: "Estado",
-    render: (c) => (
-      <Badge variant={c.is_active ? "default" : "secondary"}>
-        {c.is_active ? "Activo" : "Inactivo"}
-      </Badge>
-    ),
+    render: (c) =>
+      c.is_active ? null : (
+        <StatusIndicator status="cancelled" label="Inactivo" />
+      ),
   },
 ];
+
+function ClientsListSkeleton() {
+  return (
+    <div className="space-y-2">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="skeleton h-14 w-full" />
+      ))}
+    </div>
+  );
+}
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -85,9 +94,9 @@ export default function ClientsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1>Clientes</h1>
-        <Link href="/dashboard/clients/new" className={buttonVariants({ className: "h-10 px-4 md:h-8 md:px-2.5" })}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo cliente
+        <Link href="/dashboard/clients/new" className={buttonVariants({ size: "sm", className: "h-10 px-4 md:h-8 md:px-2.5" })}>
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Nuevo
         </Link>
       </div>
 
@@ -109,7 +118,7 @@ export default function ClientsPage() {
             setActiveFilter(e.target.value);
             setPage(1);
           }}
-          className="flex h-10 rounded-md border border-input bg-background px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:h-9 md:text-sm"
+          className="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
@@ -118,7 +127,7 @@ export default function ClientsPage() {
       </div>
 
       {loading && !data ? (
-        <p className="text-muted-foreground">Cargando...</p>
+        <ClientsListSkeleton />
       ) : data ? (
         <>
           <ResponsiveList
@@ -128,31 +137,23 @@ export default function ClientsPage() {
             emptyMessage="No se encontraron clientes"
             renderCard={(c) => (
               <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium shrink-0">
+                  {c.first_name[0]}{c.last_name[0]}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-base font-semibold truncate">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">
                       {c.first_name} {c.last_name}
                     </p>
-                    <Badge variant={c.is_active ? "default" : "secondary"} className="shrink-0 text-xs">
-                      {c.is_active ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </div>
-                  <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
-                    {c.phone && (
-                      <span className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5" />
-                        {c.phone}
-                      </span>
-                    )}
-                    {c.email && (
-                      <span className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5" />
-                        {c.email}
-                      </span>
+                    {!c.is_active && (
+                      <span className="text-xs text-muted-foreground">Inactivo</span>
                     )}
                   </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {c.phone || c.email || "Sin contacto"}
+                  </p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
               </div>
             )}
           />

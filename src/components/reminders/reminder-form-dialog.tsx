@@ -14,12 +14,16 @@ import {
 } from "@/components/ui/dialog";
 import { api, FetchError } from "@/lib/api";
 import type { Client, Property, PaginatedResponse } from "@/lib/types";
+import { AlertTriangle } from "lucide-react";
 
 interface ReminderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }
+
+const selectClass =
+  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50";
 
 export function ReminderFormDialog({
   open,
@@ -83,7 +87,6 @@ export function ReminderFormDialog({
         description: form.description || null,
         remind_date: form.remind_date,
       });
-      // Reset form
       setForm({ property_id: "", title: "", description: "", remind_date: "" });
       setSelectedClientId("");
       setProperties([]);
@@ -97,9 +100,6 @@ export function ReminderFormDialog({
     }
   }
 
-  const selectClass =
-    "flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -107,8 +107,8 @@ export function ReminderFormDialog({
           <DialogTitle>Nuevo recordatorio</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="rem-client">Cliente *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="rem-client" className="text-xs font-medium text-muted-foreground">Cliente *</Label>
             <select
               id="rem-client"
               value={selectedClientId}
@@ -124,8 +124,8 @@ export function ReminderFormDialog({
               ))}
             </select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="rem-property">Propiedad *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="rem-property" className="text-xs font-medium text-muted-foreground">Propiedad *</Label>
             <select
               id="rem-property"
               name="property_id"
@@ -147,8 +147,8 @@ export function ReminderFormDialog({
               ))}
             </select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="rem-title">Titulo *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="rem-title" className="text-xs font-medium text-muted-foreground">Titulo *</Label>
             <Input
               id="rem-title"
               name="title"
@@ -159,8 +159,8 @@ export function ReminderFormDialog({
               placeholder="Ej: Revision trimestral"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="rem-date">Fecha *</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="rem-date" className="text-xs font-medium text-muted-foreground">Fecha *</Label>
             <Input
               id="rem-date"
               name="remind_date"
@@ -170,8 +170,8 @@ export function ReminderFormDialog({
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="rem-desc">Descripcion</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="rem-desc" className="text-xs font-medium text-muted-foreground">Descripcion</Label>
             <Textarea
               id="rem-desc"
               name="description"
@@ -180,9 +180,22 @@ export function ReminderFormDialog({
               rows={2}
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <div className="flex items-center gap-2 rounded-md bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" size="sm" disabled={loading}>
               {loading ? "Creando..." : "Crear recordatorio"}
             </Button>
           </DialogFooter>

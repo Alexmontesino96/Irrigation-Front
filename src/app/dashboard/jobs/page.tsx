@@ -5,27 +5,19 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import { StatusIndicator } from "@/components/shared/status-indicator";
+import { type Column } from "@/components/shared/data-table";
 import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Pagination } from "@/components/shared/pagination";
 import { api } from "@/lib/api";
 import type { Job, PaginatedResponse } from "@/lib/types";
 import {
-  JOB_STATUS,
   JOB_STATUS_LABELS,
   JOB_TYPE_LABELS,
-  type JobStatus,
-  type JobType,
 } from "@/lib/types";
-import { Plus, Search, CalendarDays, DollarSign, User, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 15;
-
-const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive"> = {
-  completed: "default",
-  cancelled: "destructive",
-};
 
 const columns: Column<Job>[] = [
   { key: "title", header: "Titulo" },
@@ -45,9 +37,10 @@ const columns: Column<Job>[] = [
     key: "status",
     header: "Estado",
     render: (j) => (
-      <Badge variant={STATUS_COLORS[j.status] ?? "secondary"}>
-        {JOB_STATUS_LABELS[j.status] ?? j.status}
-      </Badge>
+      <StatusIndicator
+        status={j.status}
+        label={JOB_STATUS_LABELS[j.status] ?? j.status}
+      />
     ),
   },
   { key: "scheduled_date", header: "Fecha", className: "hidden md:table-cell" },
@@ -58,6 +51,16 @@ const columns: Column<Job>[] = [
     render: (j) => (j.price != null ? `$${j.price.toFixed(2)}` : "—"),
   },
 ];
+
+function JobsListSkeleton() {
+  return (
+    <div className="space-y-2">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="skeleton h-14 w-full" />
+      ))}
+    </div>
+  );
+}
 
 export default function JobsPage() {
   const router = useRouter();
@@ -100,15 +103,15 @@ export default function JobsPage() {
   }
 
   const selectClass =
-    "flex h-10 rounded-md border border-input bg-background px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:h-8 md:text-sm";
+    "flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1>Trabajos</h1>
-        <Link href="/dashboard/jobs/new" className={buttonVariants({ className: "h-10 px-4 md:h-8 md:px-2.5" })}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo trabajo
+        <Link href="/dashboard/jobs/new" className={buttonVariants({ size: "sm", className: "h-10 px-4 md:h-8 md:px-2.5" })}>
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Nuevo
         </Link>
       </div>
 
@@ -161,7 +164,7 @@ export default function JobsPage() {
       </div>
 
       {loading && !data ? (
-        <p className="text-muted-foreground">Cargando...</p>
+        <JobsListSkeleton />
       ) : data ? (
         <>
           <ResponsiveList
@@ -172,33 +175,20 @@ export default function JobsPage() {
             renderCard={(j) => (
               <div className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-base font-semibold truncate">{j.title}</p>
-                    <Badge variant={STATUS_COLORS[j.status] ?? "secondary"} className="shrink-0 text-xs">
-                      {JOB_STATUS_LABELS[j.status] ?? j.status}
-                    </Badge>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <StatusIndicator
+                      status={j.status}
+                      label={JOB_STATUS_LABELS[j.status] ?? j.status}
+                    />
                   </div>
-                  {j.client_name && (
-                    <p className="flex items-center gap-1.5 text-sm text-foreground/80 mb-1.5">
-                      <User className="h-3.5 w-3.5" />
-                      {j.client_name}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    <span>{JOB_TYPE_LABELS[j.job_type] ?? j.job_type}</span>
-                    <span className="flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      {j.scheduled_date}
-                    </span>
-                    {j.price != null && (
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-3.5 w-3.5" />
-                        ${j.price.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-sm font-medium truncate">{j.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {j.client_name && `${j.client_name} · `}
+                    {j.scheduled_date}
+                    {j.price != null && ` · $${j.price.toFixed(2)}`}
+                  </p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
               </div>
             )}
           />

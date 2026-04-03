@@ -26,11 +26,11 @@ export function ResponsiveList<T extends { id: string }>({
             {emptyMessage}
           </p>
         ) : (
-          <div className="rounded-xl border bg-card overflow-hidden divide-y">
+          <div className="rounded-lg border border-border/60 overflow-hidden divide-y divide-border/40">
             {data.map((item) => (
               <div
                 key={item.id}
-                className="px-4 py-3.5 transition-colors active:bg-accent/50 cursor-pointer"
+                className="px-3.5 py-3 transition-colors active:bg-muted/50 cursor-pointer"
                 onClick={() => onItemClick?.(item)}
               >
                 {renderCard(item)}

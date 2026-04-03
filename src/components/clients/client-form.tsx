@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { api, FetchError } from "@/lib/api";
 import type { Client, ClientCreate, ClientUpdate } from "@/lib/types";
+import { AlertTriangle } from "lucide-react";
 
 interface ClientFormProps {
   client?: Client;
@@ -73,89 +68,91 @@ export function ClientForm({ client }: ClientFormProps) {
   }
 
   return (
-    <Card className="max-w-lg">
-      <CardHeader>
-        <CardTitle>{isEditing ? "Editar cliente" : "Nuevo cliente"}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="first_name">Nombre *</Label>
-              <Input
-                id="first_name"
-                name="first_name"
-                value={form.first_name}
-                onChange={handleChange}
-                required
-                maxLength={100}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="last_name">Apellido *</Label>
-              <Input
-                id="last_name"
-                name="last_name"
-                value={form.last_name}
-                onChange={handleChange}
-                required
-                maxLength={100}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefono</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                maxLength={20}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notas</Label>
-            <Textarea
-              id="notes"
-              name="notes"
-              value={form.notes}
+    <div className="max-w-lg">
+      <h1 className="mb-6">{isEditing ? "Editar cliente" : "Nuevo cliente"}</h1>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="first_name" className="text-xs font-medium text-muted-foreground">Nombre *</Label>
+            <Input
+              id="first_name"
+              name="first_name"
+              value={form.first_name}
               onChange={handleChange}
-              rows={3}
+              required
+              maxLength={100}
             />
           </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex gap-3">
-            <Button type="submit" disabled={loading}>
-              {loading
-                ? "Guardando..."
-                : isEditing
-                  ? "Guardar cambios"
-                  : "Crear cliente"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
-              Cancelar
-            </Button>
+          <div className="space-y-1.5">
+            <Label htmlFor="last_name" className="text-xs font-medium text-muted-foreground">Apellido *</Label>
+            <Input
+              id="last_name"
+              name="last_name"
+              value={form.last_name}
+              onChange={handleChange}
+              required
+              maxLength={100}
+            />
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="phone" className="text-xs font-medium text-muted-foreground">Telefono</Label>
+            <Input
+              id="phone"
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              maxLength={20}
+            />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="notes" className="text-xs font-medium text-muted-foreground">Notas</Label>
+          <Textarea
+            id="notes"
+            name="notes"
+            value={form.notes}
+            onChange={handleChange}
+            rows={3}
+          />
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-md bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <Button type="submit" size="sm" disabled={loading}>
+            {loading
+              ? "Guardando..."
+              : isEditing
+                ? "Guardar cambios"
+                : "Crear cliente"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+          >
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

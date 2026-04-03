@@ -56,32 +56,40 @@
   --card-foreground: oklch(0.145 0.017 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0.017 260);
-  --primary: oklch(0.44 0.11 260);
+  --primary: oklch(0.37 0.07 265);
   --primary-foreground: oklch(0.985 0.003 250);
   --secondary: oklch(0.96 0.005 250);
   --secondary-foreground: oklch(0.24 0.015 260);
   --muted: oklch(0.96 0.005 250);
-  --muted-foreground: oklch(0.55 0.015 260);
+  --muted-foreground: oklch(0.50 0.01 260);
   --accent: oklch(0.96 0.005 250);
   --accent-foreground: oklch(0.24 0.015 260);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.915 0.005 250);
-  --input: oklch(0.915 0.005 250);
-  --ring: oklch(0.44 0.11 260);
+  --border: oklch(0.935 0.002 260);
+  --input: oklch(0.935 0.002 260);
+  --ring: oklch(0.37 0.07 265);
   --chart-1: oklch(0.50 0.13 260);
   --chart-2: oklch(0.55 0.14 170);
   --chart-3: oklch(0.60 0.12 50);
   --chart-4: oklch(0.65 0.10 310);
   --chart-5: oklch(0.55 0.11 140);
   --radius: 0.5rem;
-  --sidebar: oklch(0.985 0.003 250);
+  --sidebar: oklch(0.975 0.001 260);
   --sidebar-foreground: oklch(0.145 0.017 260);
-  --sidebar-primary: oklch(0.44 0.11 260);
+  --sidebar-primary: oklch(0.37 0.07 265);
   --sidebar-primary-foreground: oklch(0.985 0.003 250);
   --sidebar-accent: oklch(0.96 0.005 250);
   --sidebar-accent-foreground: oklch(0.24 0.015 260);
-  --sidebar-border: oklch(0.915 0.005 250);
-  --sidebar-ring: oklch(0.44 0.11 260);
+  --sidebar-border: oklch(0.935 0.002 260);
+  --sidebar-ring: oklch(0.37 0.07 265);
+
+  /* Status colors */
+  --status-scheduled: oklch(0.55 0.14 250);
+  --status-in-progress: oklch(0.65 0.16 55);
+  --status-completed: oklch(0.55 0.16 150);
+  --status-cancelled: oklch(0.55 0.01 260);
+  --status-pending: oklch(0.65 0.16 55);
+  --status-overdue: oklch(0.577 0.245 27.325);
 
   font-size: 14px;
 }
@@ -94,31 +102,39 @@
   --card-foreground: oklch(0.93 0.006 260);
   --popover: oklch(0.17 0.012 260);
   --popover-foreground: oklch(0.93 0.006 260);
-  --primary: oklch(0.62 0.14 260);
+  --primary: oklch(0.58 0.10 265);
   --primary-foreground: oklch(0.13 0.012 260);
   --secondary: oklch(0.22 0.012 260);
   --secondary-foreground: oklch(0.93 0.006 260);
   --muted: oklch(0.22 0.012 260);
-  --muted-foreground: oklch(0.63 0.01 260);
+  --muted-foreground: oklch(0.58 0.01 260);
   --accent: oklch(0.22 0.012 260);
   --accent-foreground: oklch(0.93 0.006 260);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(0.265 0.012 260);
   --input: oklch(0.265 0.012 260);
-  --ring: oklch(0.62 0.14 260);
+  --ring: oklch(0.58 0.10 265);
   --chart-1: oklch(0.62 0.14 260);
   --chart-2: oklch(0.65 0.14 170);
   --chart-3: oklch(0.68 0.12 50);
   --chart-4: oklch(0.72 0.10 310);
   --chart-5: oklch(0.62 0.11 140);
-  --sidebar: oklch(0.15 0.012 260);
+  --sidebar: oklch(0.14 0.012 260);
   --sidebar-foreground: oklch(0.93 0.006 260);
-  --sidebar-primary: oklch(0.62 0.14 260);
+  --sidebar-primary: oklch(0.58 0.10 265);
   --sidebar-primary-foreground: oklch(0.13 0.012 260);
   --sidebar-accent: oklch(0.22 0.012 260);
   --sidebar-accent-foreground: oklch(0.93 0.006 260);
   --sidebar-border: oklch(0.265 0.012 260);
-  --sidebar-ring: oklch(0.62 0.14 260);
+  --sidebar-ring: oklch(0.58 0.10 265);
+
+  /* Status colors (dark) */
+  --status-scheduled: oklch(0.65 0.14 250);
+  --status-in-progress: oklch(0.72 0.14 55);
+  --status-completed: oklch(0.65 0.14 150);
+  --status-cancelled: oklch(0.55 0.01 260);
+  --status-pending: oklch(0.72 0.14 55);
+  --status-overdue: oklch(0.704 0.191 22.216);
 }
 
 /* ── Base styles ─────────────────────────────────── */
@@ -130,6 +146,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "liga" 1, "calt" 1;
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -144,18 +161,37 @@
 
   /* Headings */
   h1 {
-    @apply text-2xl font-semibold tracking-tight;
-    letter-spacing: -0.025em;
+    @apply text-xl font-semibold;
+    letter-spacing: -0.03em;
   }
   h2 {
-    @apply text-xl font-semibold tracking-tight;
+    @apply text-base font-semibold;
+    letter-spacing: -0.02em;
   }
   h3 {
-    @apply text-lg font-medium;
+    @apply text-sm font-medium;
   }
 
   /* Tabular nums for data */
   td, th {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── Utilities ───────────────────────────────────── */
+@layer utilities {
+  .skeleton {
+    @apply animate-pulse rounded-md bg-muted;
+  }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
