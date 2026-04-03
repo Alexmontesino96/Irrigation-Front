@@ -1,6 +1,5 @@
-const CACHE_NAME = "irrigationcrm-v1";
+const CACHE_NAME = "irrigationcrm-v2";
 const STATIC_ASSETS = [
-  "/dashboard",
   "/icon-192x192.png",
   "/icon-512x512.png",
 ];
@@ -34,6 +33,9 @@ self.addEventListener("fetch", (event) => {
 
   // Skip non-GET requests
   if (request.method !== "GET") return;
+
+  // Skip navigation requests — Safari blocks SW redirect responses
+  if (request.mode === "navigate") return;
 
   // Network-first for API calls
   if (url.pathname.startsWith("/api/")) {
