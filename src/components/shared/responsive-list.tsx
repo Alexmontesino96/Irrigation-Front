@@ -8,6 +8,9 @@ interface ResponsiveListProps<T extends { id: string }> {
   onItemClick?: (item: T) => void;
   renderCard: (item: T) => React.ReactNode;
   emptyMessage?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  onSort?: (column: string) => void;
 }
 
 export function ResponsiveList<T extends { id: string }>({
@@ -16,6 +19,9 @@ export function ResponsiveList<T extends { id: string }>({
   onItemClick,
   renderCard,
   emptyMessage = "No hay datos",
+  sortBy,
+  sortOrder,
+  onSort,
 }: ResponsiveListProps<T>) {
   return (
     <>
@@ -47,6 +53,9 @@ export function ResponsiveList<T extends { id: string }>({
           data={data}
           onRowClick={onItemClick}
           emptyMessage={emptyMessage}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={onSort}
         />
       </div>
     </>

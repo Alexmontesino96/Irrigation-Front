@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Pagination } from "@/components/shared/pagination";
 import { StatusIndicator } from "@/components/shared/status-indicator";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ReminderFormDialog } from "@/components/reminders/reminder-form-dialog";
+import { useListParams } from "@/lib/use-list-params";
 import { api, FetchError } from "@/lib/api";
 import type { Reminder, PaginatedResponse } from "@/lib/types";
 import { REMINDER_STATUS_LABELS } from "@/lib/types";
@@ -14,6 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Plus, CheckCircle, XCircle, Bot, User, Search, Inbox } from "lucide-react";
 
 const PAGE_SIZE = 15;
+
+const SORT_OPTIONS = [
+  { label: "Fecha \u2191", sort_by: "remind_date", sort_order: "asc" as const },
+  { label: "Fecha \u2193", sort_by: "remind_date", sort_order: "desc" as const },
+  { label: "Mas nuevos", sort_by: "created_at", sort_order: "desc" as const },
+  { label: "Titulo A-Z", sort_by: "title", sort_order: "asc" as const },
+];
 
 function RemindersSkeleton() {
   return (
@@ -27,15 +35,10 @@ function RemindersSkeleton() {
   );
 }
 
-export default function RemindersPage() {
+function RemindersContent() {
   const [tab, setTab] = useState("upcoming");
   const [upcoming, setUpcoming] = useState<Reminder[]>([]);
-  const [allData, setAllData] = useState<PaginatedResponse<Reminder> | null>(
-    null
-  );
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [allData, setAllData] = useState<PaginatedResponse<Reminder> | null>(null);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -43,6 +46,26 @@ export default function RemindersPage() {
     reminder: Reminder;
     action: "complete" | "cancel";
   } | null>(null);
+
+  const {
+    page,
+    search,
+    sortBy,
+    sortOrder,
+    filters,
+    setPage,
+    setSearch,
+    setSortDirect,
+    setFilter,
+    buildApiParams,
+  } = useListParams({
+    defaultSortBy: "remind_date",
+    defaultSortOrder: "asc",
+    defaultPageSize: PAGE_SIZE,
+    filterKeys: ["status"],
+  });
+
+  const [searchInput, setSearchInput] = useState(search);
 
   const fetchUpcoming = useCallback(async () => {
     setLoading(true);
@@ -59,25 +82,23 @@ export default function RemindersPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        size: String(PAGE_SIZE),
-      });
-      if (search) params.set("search", search);
-      if (statusFilter) params.set("status", statusFilter);
       const res = await api.get<PaginatedResponse<Reminder>>(
-        `/api/reminders?${params}`
+        `/api/reminders?${buildApiParams()}`
       );
       setAllData(res);
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [buildApiParams]);
 
   useEffect(() => {
     if (tab === "upcoming") fetchUpcoming();
     else fetchAll();
   }, [tab, fetchUpcoming, fetchAll]);
+
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   async function handleAction() {
     if (!actionTarget) return;
@@ -97,6 +118,14 @@ export default function RemindersPage() {
   function handleSaved() {
     if (tab === "upcoming") fetchUpcoming();
     else fetchAll();
+  }
+
+  const currentSortKey = `${sortBy}:${sortOrder}`;
+
+  function handleSortChange(value: string) {
+    const opt = SORT_OPTIONS.find((o) => `${o.sort_by}:${o.sort_order}` === value);
+    if (!opt) return;
+    setSortDirect(opt.sort_by, opt.sort_order);
   }
 
   const selectClass =
@@ -220,7 +249,7 @@ export default function RemindersPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  setPage(1);
+                  setSearch(searchInput);
                 }}
                 className="flex-1 min-w-[200px] max-w-sm"
               >
@@ -228,24 +257,32 @@ export default function RemindersPage() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por titulo..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     className="pl-9"
                   />
                 </div>
               </form>
               <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
+                value={filters.status || ""}
+                onChange={(e) => setFilter("status", e.target.value || null)}
                 className={selectClass}
               >
                 <option value="">Todos los estados</option>
                 {Object.entries(REMINDER_STATUS_LABELS).map(([v, l]) => (
                   <option key={v} value={v}>
                     {l}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={currentSortKey}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className={selectClass}
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={`${opt.sort_by}:${opt.sort_order}`} value={`${opt.sort_by}:${opt.sort_order}`}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
@@ -299,5 +336,13 @@ export default function RemindersPage() {
         destructive={actionTarget?.action === "cancel"}
       />
     </div>
+  );
+}
+
+export default function RemindersPage() {
+  return (
+    <Suspense fallback={<RemindersSkeleton />}>
+      <RemindersContent />
+    </Suspense>
   );
 }

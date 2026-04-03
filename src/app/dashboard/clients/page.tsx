@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
@@ -9,21 +9,22 @@ import { StatusIndicator } from "@/components/shared/status-indicator";
 import { type Column } from "@/components/shared/data-table";
 import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Pagination } from "@/components/shared/pagination";
+import { useListParams } from "@/lib/use-list-params";
 import { api } from "@/lib/api";
 import type { Client, PaginatedResponse } from "@/lib/types";
 import { Plus, Search, ChevronRight } from "lucide-react";
-
-const PAGE_SIZE = 10;
 
 const columns: Column<Client>[] = [
   {
     key: "name",
     header: "Nombre",
+    sortKey: "first_name",
     render: (c) => `${c.first_name} ${c.last_name}`,
   },
   {
     key: "email",
     header: "Email",
+    sortKey: "email",
     className: "hidden sm:table-cell",
     render: (c) => c.email || "—",
   },
@@ -53,24 +54,41 @@ function ClientsListSkeleton() {
   );
 }
 
-export default function ClientsPage() {
+function ClientsContent() {
   const router = useRouter();
+  const {
+    page,
+    search,
+    sortBy,
+    sortOrder,
+    filters,
+    setPage,
+    setSearch,
+    setSort,
+    setFilter,
+    buildApiParams,
+  } = useListParams({
+    defaultSortBy: "created_at",
+    defaultSortOrder: "desc",
+    defaultPageSize: 10,
+    filterKeys: ["is_active"],
+  });
+
   const [data, setData] = useState<PaginatedResponse<Client> | null>(null);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("active");
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState(search);
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        size: String(PAGE_SIZE),
-        active_only: "false",
-      });
-      if (search) params.set("search", search);
-      if (activeFilter !== "all") params.set("is_active", activeFilter === "active" ? "true" : "false");
+      const params = new URLSearchParams(buildApiParams());
+      params.set("active_only", "false");
+      const isActiveParam = params.get("is_active");
+      if (isActiveParam === "all") {
+        params.delete("is_active");
+      } else if (!isActiveParam) {
+        params.set("is_active", "true");
+      }
       const res = await api.get<PaginatedResponse<Client>>(
         `/api/clients?${params}`
       );
@@ -78,17 +96,17 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, activeFilter]);
+  }, [buildApiParams]);
 
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    setPage(1);
-    fetchClients();
-  }
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
+  const activeFilter = filters.is_active === "false" ? "inactive" : filters.is_active === "all" ? "all" : "active";
 
   return (
     <div className="space-y-4">
@@ -101,13 +119,19 @@ export default function ClientsPage() {
       </div>
 
       <div className="flex flex-wrap gap-3 items-center">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-sm flex-1 min-w-[200px]">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSearch(searchInput);
+          }}
+          className="flex gap-2 max-w-sm flex-1 min-w-[200px]"
+        >
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre, email, telefono..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9"
             />
           </div>
@@ -115,8 +139,8 @@ export default function ClientsPage() {
         <select
           value={activeFilter}
           onChange={(e) => {
-            setActiveFilter(e.target.value);
-            setPage(1);
+            const v = e.target.value;
+            setFilter("is_active", v === "active" ? null : v === "inactive" ? "false" : "all");
           }}
           className="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
@@ -135,6 +159,9 @@ export default function ClientsPage() {
             data={data.items}
             onItemClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
             emptyMessage="No se encontraron clientes"
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={setSort}
             renderCard={(c) => (
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium shrink-0">
@@ -166,5 +193,13 @@ export default function ClientsPage() {
         </>
       ) : null}
     </div>
+  );
+}
+
+export default function ClientsPage() {
+  return (
+    <Suspense fallback={<ClientsListSkeleton />}>
+      <ClientsContent />
+    </Suspense>
   );
 }

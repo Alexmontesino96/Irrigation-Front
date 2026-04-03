@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { StatusIndicator } from "@/components/shared/status-indicator";
 import { type Column } from "@/components/shared/data-table";
 import { ResponsiveList } from "@/components/shared/responsive-list";
 import { Pagination } from "@/components/shared/pagination";
+import { useListParams } from "@/lib/use-list-params";
 import { api } from "@/lib/api";
 import type { Job, PaginatedResponse } from "@/lib/types";
 import {
@@ -17,10 +18,8 @@ import {
 } from "@/lib/types";
 import { Plus, Search, ChevronRight } from "lucide-react";
 
-const PAGE_SIZE = 15;
-
 const columns: Column<Job>[] = [
-  { key: "title", header: "Titulo" },
+  { key: "title", header: "Titulo", sortKey: "title" },
   {
     key: "client_name",
     header: "Cliente",
@@ -30,12 +29,14 @@ const columns: Column<Job>[] = [
   {
     key: "job_type",
     header: "Tipo",
+    sortKey: "job_type",
     className: "hidden lg:table-cell",
     render: (j) => JOB_TYPE_LABELS[j.job_type] ?? j.job_type,
   },
   {
     key: "status",
     header: "Estado",
+    sortKey: "status",
     render: (j) => (
       <StatusIndicator
         status={j.status}
@@ -43,10 +44,11 @@ const columns: Column<Job>[] = [
       />
     ),
   },
-  { key: "scheduled_date", header: "Fecha", className: "hidden md:table-cell" },
+  { key: "scheduled_date", header: "Fecha", sortKey: "scheduled_date", className: "hidden md:table-cell" },
   {
     key: "price",
     header: "Precio",
+    sortKey: "price",
     className: "hidden lg:table-cell",
     render: (j) => (j.price != null ? `$${j.price.toFixed(2)}` : "—"),
   },
@@ -62,45 +64,49 @@ function JobsListSkeleton() {
   );
 }
 
-export default function JobsPage() {
+function JobsContent() {
   const router = useRouter();
+  const {
+    page,
+    search,
+    sortBy,
+    sortOrder,
+    filters,
+    setPage,
+    setSearch,
+    setSort,
+    setFilter,
+    buildApiParams,
+  } = useListParams({
+    defaultSortBy: "scheduled_date",
+    defaultSortOrder: "desc",
+    defaultPageSize: 15,
+    filterKeys: ["status", "job_type", "overdue"],
+  });
+
   const [data, setData] = useState<PaginatedResponse<Job> | null>(null);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState(search);
 
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        size: String(PAGE_SIZE),
-      });
-      if (search) params.set("search", search);
-      if (statusFilter) params.set("status", statusFilter);
-      if (typeFilter) params.set("job_type", typeFilter);
       const res = await api.get<PaginatedResponse<Job>>(
-        `/api/jobs?${params}`
+        `/api/jobs?${buildApiParams()}`
       );
       setData(res);
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, typeFilter]);
+  }, [buildApiParams]);
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
-  function handleFilterChange(
-    setter: (v: string) => void,
-    value: string
-  ) {
-    setter(value);
-    setPage(1);
-  }
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   const selectClass =
     "flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
@@ -119,7 +125,7 @@ export default function JobsPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            setPage(1);
+            setSearch(searchInput);
           }}
           className="flex-1 min-w-[200px] max-w-sm"
         >
@@ -127,17 +133,15 @@ export default function JobsPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por titulo..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9"
             />
           </div>
         </form>
         <select
-          value={statusFilter}
-          onChange={(e) =>
-            handleFilterChange(setStatusFilter, e.target.value)
-          }
+          value={filters.status || ""}
+          onChange={(e) => setFilter("status", e.target.value || null)}
           className={selectClass}
         >
           <option value="">Todos los estados</option>
@@ -148,10 +152,8 @@ export default function JobsPage() {
           ))}
         </select>
         <select
-          value={typeFilter}
-          onChange={(e) =>
-            handleFilterChange(setTypeFilter, e.target.value)
-          }
+          value={filters.job_type || ""}
+          onChange={(e) => setFilter("job_type", e.target.value || null)}
           className={selectClass}
         >
           <option value="">Todos los tipos</option>
@@ -161,6 +163,15 @@ export default function JobsPage() {
             </option>
           ))}
         </select>
+        <label className={`inline-flex items-center gap-1.5 text-sm ${selectClass} cursor-pointer`}>
+          <input
+            type="checkbox"
+            checked={filters.overdue === "true"}
+            onChange={(e) => setFilter("overdue", e.target.checked ? "true" : null)}
+            className="rounded border-input"
+          />
+          Vencidos
+        </label>
       </div>
 
       {loading && !data ? (
@@ -172,6 +183,9 @@ export default function JobsPage() {
             data={data.items}
             onItemClick={(j) => router.push(`/dashboard/jobs/${j.id}`)}
             emptyMessage="No se encontraron trabajos"
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={setSort}
             renderCard={(j) => (
               <div className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
@@ -201,5 +215,13 @@ export default function JobsPage() {
         </>
       ) : null}
     </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <Suspense fallback={<JobsListSkeleton />}>
+      <JobsContent />
+    </Suspense>
   );
 }
