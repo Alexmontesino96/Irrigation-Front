@@ -8,12 +8,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusIndicator } from "@/components/shared/status-indicator";
 import { CompleteJobDialog } from "@/components/jobs/complete-job-dialog";
 import { RescheduleJobDialog } from "@/components/jobs/reschedule-job-dialog";
+import { BarChart } from "@/components/dashboard/bar-chart";
 import { api } from "@/lib/api";
 import type {
   Reminder,
   Job,
   Client,
   PaginatedResponse,
+  FinancialSummary,
+  MonthlyData,
 } from "@/lib/types";
 import {
   JOB_STATUS_LABELS,
@@ -29,15 +32,10 @@ import {
   Calendar,
   Clock,
   Inbox,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-
-interface Stats {
-  totalClients: number;
-  pendingJobs: number;
-  upcomingReminders: number;
-  overdueJobs: number;
-}
 
 function DashboardSkeleton() {
   return (
@@ -71,35 +69,33 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [overdueJobs, setOverdueJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [completeJob, setCompleteJob] = useState<Job | null>(null);
   const [rescheduleJob, setRescheduleJob] = useState<Job | null>(null);
+  const [financial, setFinancial] = useState<FinancialSummary | null>(null);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
     try {
-      const [remRes, jobsRes, clientsRes, overdueRes] = await Promise.all([
+      const [remRes, jobsRes, overdueRes, finRes, monthRes] = await Promise.all([
         api.get<Reminder[]>("/api/reminders/upcoming?days=7"),
         api.get<PaginatedResponse<Job>>(
           "/api/jobs?status=scheduled&size=5"
         ),
-        api.get<PaginatedResponse<Client>>("/api/clients?size=1"),
         api.get<PaginatedResponse<Job>>("/api/jobs?overdue=true&size=10"),
+        api.get<FinancialSummary>("/api/analytics/financial-summary").catch(() => null),
+        api.get<MonthlyData[]>("/api/analytics/monthly-revenue?months=6").catch(() => []),
       ]);
       setReminders(remRes);
       setJobs(jobsRes.items);
       setOverdueJobs(overdueRes.items);
-      setStats({
-        totalClients: clientsRes.total,
-        pendingJobs: jobsRes.total,
-        upcomingReminders: remRes.length,
-        overdueJobs: overdueRes.total,
-      });
+      if (finRes) setFinancial(finRes);
+      if (monthRes) setMonthlyData(monthRes);
     } catch {
       // silently fail
     } finally {
@@ -145,38 +141,70 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div
-            className="rounded-lg border border-border/60 p-3.5 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => router.push("/dashboard/clients")}
-          >
-            <p className="text-xs text-muted-foreground">Clientes</p>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight mt-1">{stats.totalClients}</p>
-          </div>
-          <div
-            className="rounded-lg border border-border/60 p-3.5 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => router.push("/dashboard/jobs")}
-          >
-            <p className="text-xs text-muted-foreground">Trabajos programados</p>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight mt-1">{stats.pendingJobs}</p>
-          </div>
-          <div
-            className="rounded-lg border border-border/60 p-3.5 cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => router.push("/dashboard/reminders")}
-          >
-            <p className="text-xs text-muted-foreground">Recordatorios (7d)</p>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight mt-1">{stats.upcomingReminders}</p>
-          </div>
-          {stats.overdueJobs > 0 && (
-            <div className="rounded-lg border border-border/60 p-3.5">
-              <p className="text-xs text-muted-foreground">Vencidos</p>
-              <p className="text-2xl font-semibold tabular-nums tracking-tight mt-1 text-[var(--status-overdue)]">
-                {stats.overdueJobs}
-              </p>
+      {/* Financial Stats */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div
+          className="rounded-lg border border-border/60 p-3.5 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => router.push("/dashboard/invoices")}
+        >
+          <p className="text-xs text-muted-foreground">Ingresos del mes</p>
+          <p className="text-2xl font-semibold tabular-nums tracking-tight mt-1">
+            ${financial?.revenue_this_month?.toFixed(0) ?? "0"}
+          </p>
+          {financial && financial.revenue_change_pct !== 0 && (
+            <div className={`flex items-center gap-1 mt-1 text-xs ${financial.revenue_change_pct > 0 ? "text-green-600" : "text-red-500"}`}>
+              {financial.revenue_change_pct > 0 ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
+              {financial.revenue_change_pct > 0 ? "+" : ""}
+              {financial.revenue_change_pct.toFixed(1)}%
             </div>
           )}
+        </div>
+        <div
+          className="rounded-lg border border-border/60 p-3.5 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => router.push("/dashboard/expenses")}
+        >
+          <p className="text-xs text-muted-foreground">Gastos del mes</p>
+          <p className="text-2xl font-semibold tabular-nums tracking-tight mt-1">
+            ${financial?.expenses_this_month?.toFixed(0) ?? "0"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border/60 p-3.5">
+          <p className="text-xs text-muted-foreground">Margen</p>
+          <p className={`text-2xl font-semibold tabular-nums tracking-tight mt-1 ${(financial?.profit_margin ?? 0) >= 0 ? "" : "text-red-500"}`}>
+            ${financial?.profit_margin?.toFixed(0) ?? "0"}
+          </p>
+        </div>
+        <div
+          className="rounded-lg border border-border/60 p-3.5 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => router.push("/dashboard/invoices?status=sent")}
+        >
+          <p className="text-xs text-muted-foreground">Por cobrar</p>
+          <p className="text-2xl font-semibold tabular-nums tracking-tight mt-1">
+            ${financial?.outstanding?.toFixed(0) ?? "0"}
+          </p>
+        </div>
+      </div>
+
+      {/* Monthly Revenue Chart */}
+      {monthlyData.length > 0 && (
+        <div className="rounded-lg border border-border/60 p-4">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">
+            Ingresos vs Gastos (6 meses)
+          </p>
+          <BarChart
+            data={monthlyData.map((m) => ({
+              label: m.month.slice(5),
+              values: [
+                { value: m.revenue, color: "var(--status-completed, #22c55e)", label: "Ingresos" },
+                { value: m.expenses, color: "var(--status-overdue, #ef4444)", label: "Gastos" },
+              ],
+            }))}
+            height={160}
+          />
         </div>
       )}
 
