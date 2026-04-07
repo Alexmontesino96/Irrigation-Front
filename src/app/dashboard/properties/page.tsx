@@ -3,13 +3,13 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Plus, Upload, ChevronRight } from "lucide-react";
+import { Search, Plus, Upload } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/shared/pagination";
 import { useListParams } from "@/lib/use-list-params";
 import { api } from "@/lib/api";
-import type { Client, PaginatedResponse } from "@/lib/types";
+import type { PropertyWithClient, PaginatedResponse } from "@/lib/types";
 
 // ── Avatar helpers ──────────────────────────────────────────────────────────
 
@@ -34,9 +34,13 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function getInitials(firstName: string, lastName: string): string {
-  const a = firstName.trim()[0] ?? "";
-  const b = lastName.trim()[0] ?? "";
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return (parts[0]?.slice(0, 2) ?? "").toUpperCase();
+  }
+  const a = parts[0]?.[0] ?? "";
+  const b = parts[1]?.[0] ?? "";
   return (a + b).toUpperCase();
 }
 
@@ -62,14 +66,14 @@ function relativeTime(dateStr: string): string {
 
 // ── Skeleton ────────────────────────────────────────────────────────────────
 
-function ClientsListSkeleton() {
+function PropertiesListSkeleton() {
   return (
     <div className="space-y-4">
       {/* header skeleton */}
       <div className="flex items-center justify-between">
-        <div className="skeleton h-8 w-28 rounded-md" />
+        <div className="skeleton h-8 w-36 rounded-md" />
         <div className="flex gap-2">
-          <div className="skeleton h-8 w-32 rounded-lg" />
+          <div className="skeleton h-8 w-36 rounded-lg" />
           <div className="skeleton h-8 w-24 rounded-lg" />
         </div>
       </div>
@@ -77,7 +81,7 @@ function ClientsListSkeleton() {
       <div className="skeleton h-10 w-full rounded-lg" />
       {/* filter row skeleton */}
       <div className="flex items-center justify-between">
-        <div className="skeleton h-8 w-52 rounded-lg" />
+        <div className="skeleton h-8 w-56 rounded-lg" />
         <div className="skeleton h-8 w-44 rounded-lg" />
       </div>
       {/* rows skeleton */}
@@ -86,13 +90,12 @@ function ClientsListSkeleton() {
           <div key={i} className="flex items-center gap-4 px-4 py-3.5">
             <div className="skeleton h-9 w-9 rounded-full shrink-0" />
             <div className="flex-1 space-y-1.5">
-              <div className="skeleton h-3.5 w-36 rounded" />
-              <div className="skeleton h-3 w-24 rounded" />
+              <div className="skeleton h-3.5 w-40 rounded" />
+              <div className="skeleton h-3 w-28 rounded" />
             </div>
-            <div className="skeleton h-3 w-16 rounded hidden md:block" />
-            <div className="skeleton h-3 w-24 rounded hidden lg:block" />
+            <div className="skeleton h-3 w-20 rounded hidden md:block" />
             <div className="skeleton h-3 w-28 rounded hidden lg:block" />
-            <div className="skeleton h-3 w-20 rounded hidden xl:block" />
+            <div className="skeleton h-3 w-24 rounded hidden xl:block" />
           </div>
         ))}
       </div>
@@ -100,18 +103,17 @@ function ClientsListSkeleton() {
   );
 }
 
-// ── Client Avatar ────────────────────────────────────────────────────────────
+// ── Inline Avatar ────────────────────────────────────────────────────────────
 
-function ClientAvatar({
-  client,
+function InitialsAvatar({
+  name,
   size = "md",
 }: {
-  client: Client;
+  name: string;
   size?: "sm" | "md";
 }) {
-  const name = `${client.first_name} ${client.last_name}`;
   const colorClass = getAvatarColor(name);
-  const initials = getInitials(client.first_name, client.last_name);
+  const initials = getInitials(name);
   const sizeClass = size === "sm" ? "h-8 w-8 text-xs" : "h-9 w-9 text-sm";
 
   return (
@@ -126,18 +128,18 @@ function ClientAvatar({
 
 // ── Desktop Table ─────────────────────────────────────────────────────────────
 
-function ClientsTable({
-  clients,
+function PropertiesTable({
+  properties,
   onRowClick,
 }: {
-  clients: Client[];
-  onRowClick: (client: Client) => void;
+  properties: PropertyWithClient[];
+  onRowClick: (property: PropertyWithClient) => void;
 }) {
-  if (clients.length === 0) {
+  if (properties.length === 0) {
     return (
       <div className="rounded-lg border border-border/60 flex items-center justify-center h-48">
         <p className="text-sm text-muted-foreground">
-          No se encontraron clientes
+          No se encontraron propiedades
         </p>
       </div>
     );
@@ -148,80 +150,77 @@ function ClientsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border/60 bg-muted/30">
-            <th className="h-9 px-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground w-[35%]">
+            <th className="h-9 px-4 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground w-[30%]">
+              Nombre
+            </th>
+            <th className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden md:table-cell w-[22%]">
               Cliente
             </th>
-            <th className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden xl:table-cell w-[8%]">
-              Propiedades
+            <th className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden lg:table-cell w-[16%]">
+              Sistema
             </th>
-            <th className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden md:table-cell w-[16%]">
-              Telefono
+            <th className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden xl:table-cell w-[16%]">
+              Ultimo servicio
             </th>
-            <th className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden lg:table-cell w-[20%]">
-              Email
-            </th>
-            <th className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hidden xl:table-cell w-[14%]">
-              Ultimo trabajo
-            </th>
-            <th className="h-9 px-3 w-8" aria-label="Accion" />
+            <th className="h-9 px-3 w-16" aria-label="Accion" />
           </tr>
         </thead>
         <tbody className="divide-y divide-border/40">
-          {clients.map((client) => (
+          {properties.map((property) => (
             <tr
-              key={client.id}
+              key={property.id}
               className="hover:bg-muted/40 cursor-pointer transition-colors"
-              onClick={() => onRowClick(client)}
+              onClick={() => onRowClick(property)}
             >
-              {/* Cliente */}
+              {/* Nombre */}
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <ClientAvatar client={client} size="md" />
+                  <InitialsAvatar name={property.name} size="md" />
                   <div className="min-w-0">
                     <p className="font-medium text-[13px] truncate">
-                      {client.first_name} {client.last_name}
+                      {property.name}
                     </p>
-                    {client.address && (
+                    {property.address && (
                       <p className="text-xs text-muted-foreground truncate">
-                        {client.address}
+                        {property.address}
                       </p>
                     )}
                   </div>
                 </div>
               </td>
 
-              {/* Propiedades */}
-              <td className="px-3 py-3 text-[13px] text-muted-foreground hidden xl:table-cell">
+              {/* Cliente */}
+              <td className="px-3 py-3 hidden md:table-cell">
+                <div className="flex items-center gap-2">
+                  <InitialsAvatar name={property.client_name} size="sm" />
+                  <span className="text-[13px] truncate max-w-[140px]">
+                    {property.client_name}
+                  </span>
+                </div>
+              </td>
+
+              {/* Sistema */}
+              <td className="px-3 py-3 text-[13px] text-muted-foreground hidden lg:table-cell">
                 —
               </td>
 
-              {/* Telefono */}
-              <td className="px-3 py-3 text-[13px] text-muted-foreground hidden md:table-cell">
-                {client.phone ?? "—"}
-              </td>
-
-              {/* Email */}
-              <td className="px-3 py-3 text-[13px] hidden lg:table-cell">
-                {client.email ? (
-                  <span
-                    className="text-primary truncate block max-w-[180px]"
-                    title={client.email}
-                  >
-                    {client.email}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </td>
-
-              {/* Ultimo trabajo */}
+              {/* Ultimo servicio */}
               <td className="px-3 py-3 text-[13px] text-muted-foreground hidden xl:table-cell">
-                {relativeTime(client.updated_at)}
+                {relativeTime(property.updated_at)}
               </td>
 
-              {/* Arrow */}
-              <td className="px-3 py-3 text-right">
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40 inline-block" />
+              {/* Ver button */}
+              <td
+                className="px-3 py-3 text-right"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => onRowClick(property)}
+                  className={buttonVariants({ size: "sm" }) + " text-xs"}
+                >
+                  Ver
+                </button>
               </td>
             </tr>
           ))}
@@ -233,61 +232,47 @@ function ClientsTable({
 
 // ── Mobile Cards ──────────────────────────────────────────────────────────────
 
-function ClientsMobileList({
-  clients,
+function PropertiesMobileList({
+  properties,
   onItemClick,
 }: {
-  clients: Client[];
-  onItemClick: (client: Client) => void;
+  properties: PropertyWithClient[];
+  onItemClick: (property: PropertyWithClient) => void;
 }) {
-  if (clients.length === 0) {
+  if (properties.length === 0) {
     return (
       <p className="text-center text-sm text-muted-foreground py-10">
-        No se encontraron clientes
+        No se encontraron propiedades
       </p>
     );
   }
 
   return (
     <div className="rounded-lg border border-border/60 overflow-hidden divide-y divide-border/40">
-      {clients.map((client) => (
+      {properties.map((property) => (
         <div
-          key={client.id}
+          key={property.id}
           className="px-3.5 py-3 transition-colors active:bg-muted/50 cursor-pointer"
-          onClick={() => onItemClick(client)}
+          onClick={() => onItemClick(property)}
         >
           <div className="flex items-center gap-3">
-            <ClientAvatar client={client} size="sm" />
+            <InitialsAvatar name={property.name} size="sm" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium truncate">
-                  {client.first_name} {client.last_name}
-                </p>
-                {!client.is_active && (
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    Archivado
-                  </span>
-                )}
+                <p className="text-sm font-medium truncate">{property.name}</p>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {relativeTime(property.updated_at)}
+                </span>
               </div>
-              {client.address && (
+              {property.address && (
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  {client.address}
+                  {property.address}
                 </p>
               )}
-              <div className="flex gap-3 mt-1.5 flex-wrap">
-                {client.phone && (
-                  <span className="text-xs text-muted-foreground">
-                    {client.phone}
-                  </span>
-                )}
-                {client.email && (
-                  <span className="text-xs text-primary truncate">
-                    {client.email}
-                  </span>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {property.client_name}
+              </p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
           </div>
         </div>
       ))}
@@ -305,52 +290,39 @@ type SortOption = {
 
 const SORT_OPTIONS: SortOption[] = [
   { label: "Mas reciente", sortBy: "created_at", sortOrder: "desc" },
-  { label: "Nombre A-Z", sortBy: "first_name", sortOrder: "asc" },
-  { label: "Nombre Z-A", sortBy: "first_name", sortOrder: "desc" },
+  { label: "Nombre A-Z", sortBy: "name", sortOrder: "asc" },
+  { label: "Nombre Z-A", sortBy: "name", sortOrder: "desc" },
 ];
 
-function ClientsContent() {
+function PropertiesContent() {
   const router = useRouter();
   const {
     page,
     search,
     sortBy,
     sortOrder,
-    filters,
     setPage,
     setSearch,
     setSortDirect,
-    setFilter,
     buildApiParams,
   } = useListParams({
     defaultSortBy: "created_at",
     defaultSortOrder: "desc",
     defaultPageSize: 20,
-    filterKeys: ["is_active"],
+    filterKeys: [],
   });
 
-  const [data, setData] = useState<PaginatedResponse<Client> | null>(null);
+  const [data, setData] = useState<PaginatedResponse<PropertyWithClient> | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(search);
+  const [activeTab, setActiveTab] = useState<"all" | "archived">("all");
 
-  // Determine which tab is active: "active" (default) or "archived"
-  const isArchived = filters.is_active === "false";
-
-  const fetchClients = useCallback(async () => {
+  const fetchProperties = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams(buildApiParams());
-      params.set("active_only", "false");
-      // If no is_active filter set (default view), show active clients only
-      if (!params.has("is_active")) {
-        params.set("is_active", "true");
-      } else if (params.get("is_active") === "true") {
-        // already set to active
-      } else if (params.get("is_active") === "false") {
-        // show archived / inactive
-      }
-      const res = await api.get<PaginatedResponse<Client>>(
-        `/api/clients?${params}`
+      const res = await api.get<PaginatedResponse<PropertyWithClient>>(
+        `/api/properties?${params}`
       );
       setData(res);
     } finally {
@@ -359,8 +331,8 @@ function ClientsContent() {
   }, [buildApiParams]);
 
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    fetchProperties();
+  }, [fetchProperties]);
 
   // Sync local search input with URL search param
   useEffect(() => {
@@ -377,7 +349,7 @@ function ClientsContent() {
     return () => clearTimeout(id);
   }, [searchInput, search, setSearch]);
 
-  // Current sort option key for the <select>
+  // Current sort option index for the <select>
   const currentSortKey = SORT_OPTIONS.findIndex(
     (o) => o.sortBy === sortBy && o.sortOrder === sortOrder
   );
@@ -390,37 +362,34 @@ function ClientsContent() {
     }
   };
 
-  const handleTabChange = (tab: "active" | "archived") => {
-    if (tab === "active") {
-      // Remove the is_active filter so we default to active in fetchClients
-      setFilter("is_active", null);
-    } else {
-      setFilter("is_active", "false");
-    }
-  };
+  const totalCount = data ? data.total : null;
 
-  const activeCount = !isArchived && data ? data.total : null;
+  const handleRowClick = (property: PropertyWithClient) => {
+    router.push(
+      `/dashboard/clients/${property.client_id}/properties/${property.id}`
+    );
+  };
 
   return (
     <div className="space-y-4">
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Propiedades</h1>
         <div className="flex items-center gap-2">
           <a
             href="#"
             className={buttonVariants({ variant: "outline", size: "sm" })}
-            aria-label="Importar clientes"
+            aria-label="Importar propiedades"
           >
             <Upload className="mr-1.5 h-3.5 w-3.5" />
             Importar
           </a>
           <Link
-            href="/dashboard/clients/new"
+            href="#"
             className={buttonVariants({ size: "sm" })}
           >
             <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Nuevo Cliente
+            Nueva Propiedad
           </Link>
         </div>
       </div>
@@ -430,60 +399,60 @@ function ClientsContent() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
           type="search"
-          placeholder="Buscar clientes..."
+          placeholder="Buscar propiedades..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9 h-10 w-full"
-          aria-label="Buscar clientes"
+          aria-label="Buscar propiedades"
         />
       </div>
 
       {/* ── Filter row ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        {/* Active / Archived toggle */}
+        {/* All / Archived toggle */}
         <div
           className="inline-flex items-center rounded-lg border border-border overflow-hidden text-sm"
           role="group"
-          aria-label="Filtrar por estado"
+          aria-label="Filtrar propiedades"
         >
           <button
             type="button"
-            onClick={() => handleTabChange("active")}
+            onClick={() => setActiveTab("all")}
             className={`px-3 py-1.5 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              !isArchived
+              activeTab === "all"
                 ? "bg-primary text-primary-foreground"
                 : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
-            aria-pressed={!isArchived}
+            aria-pressed={activeTab === "all"}
           >
-            {activeCount !== null
-              ? `${activeCount} Clientes Activos`
-              : "Clientes Activos"}
+            {activeTab === "all" && totalCount !== null
+              ? `${totalCount} Propiedades`
+              : "Todas las Propiedades"}
           </button>
           <button
             type="button"
-            onClick={() => handleTabChange("archived")}
+            onClick={() => setActiveTab("archived")}
             className={`px-3 py-1.5 font-medium transition-colors border-l border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              isArchived
+              activeTab === "archived"
                 ? "bg-primary text-primary-foreground"
                 : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
-            aria-pressed={isArchived}
+            aria-pressed={activeTab === "archived"}
           >
-            Archivados
+            Archivadas
           </button>
         </div>
 
         {/* Sort dropdown */}
         <div className="flex items-center gap-2">
           <label
-            htmlFor="clients-sort"
+            htmlFor="properties-sort"
             className="text-sm text-muted-foreground shrink-0"
           >
             Ordenar:
           </label>
           <select
-            id="clients-sort"
+            id="properties-sort"
             value={selectedSortIndex}
             onChange={(e) => handleSortChange(Number(e.target.value))}
             className="flex h-8 rounded-lg border border-input bg-background px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
@@ -519,17 +488,17 @@ function ClientsContent() {
         <>
           {/* Desktop table */}
           <div className="hidden md:block">
-            <ClientsTable
-              clients={data.items}
-              onRowClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
+            <PropertiesTable
+              properties={data.items}
+              onRowClick={handleRowClick}
             />
           </div>
 
           {/* Mobile cards */}
           <div className="md:hidden">
-            <ClientsMobileList
-              clients={data.items}
-              onItemClick={(c) => router.push(`/dashboard/clients/${c.id}`)}
+            <PropertiesMobileList
+              properties={data.items}
+              onItemClick={handleRowClick}
             />
           </div>
 
@@ -548,10 +517,10 @@ function ClientsContent() {
 
 // ── Page export ───────────────────────────────────────────────────────────────
 
-export default function ClientsPage() {
+export default function PropertiesPage() {
   return (
-    <Suspense fallback={<ClientsListSkeleton />}>
-      <ClientsContent />
+    <Suspense fallback={<PropertiesListSkeleton />}>
+      <PropertiesContent />
     </Suspense>
   );
 }

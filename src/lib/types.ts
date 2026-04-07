@@ -132,6 +132,20 @@ export interface PropertyUpdate {
   notes?: string | null;
 }
 
+export interface PropertyWithClient {
+  id: string;
+  client_id: string;
+  name: string;
+  address: string;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+  notes: string | null;
+  client_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Irrigation System ──
 
 export interface IrrigationSystem {
