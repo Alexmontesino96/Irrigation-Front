@@ -41,6 +41,7 @@ export default function NewInvoicePage() {
 
   // Load for "import from job"
   const [clientJobs, setClientJobs] = useState<Job[]>([]);
+  const [importingJobId, setImportingJobId] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -50,12 +51,37 @@ export default function NewInvoicePage() {
   }, []);
 
   const fetchClientJobs = useCallback(async (cId: string) => {
-    if (!cId) return;
+    if (!cId) {
+      setClientJobs([]);
+      return;
+    }
     try {
-      const res = await api.get<PaginatedResponse<Job>>(
-        `/api/jobs?size=50&status=completed`
+      // Get client's properties first
+      const propRes = await api.get<PaginatedResponse<{ id: string }>>(
+        `/api/clients/${cId}/properties?size=100`
       );
-      setClientJobs(res.items);
+      if (propRes.items.length === 0) {
+        setClientJobs([]);
+        return;
+      }
+      // Fetch completed jobs for each property in parallel
+      const jobResults = await Promise.all(
+        propRes.items.map((p) =>
+          api
+            .get<PaginatedResponse<Job>>(
+              `/api/jobs?property_id=${p.id}&status=completed&size=20`
+            )
+            .catch(() => ({ items: [] as Job[] }))
+        )
+      );
+      const allJobs = jobResults
+        .flatMap((r) => r.items)
+        .sort(
+          (a, b) =>
+            new Date(b.scheduled_date).getTime() -
+            new Date(a.scheduled_date).getTime()
+        );
+      setClientJobs(allJobs);
     } catch {
       setClientJobs([]);
     }
@@ -80,12 +106,17 @@ export default function NewInvoicePage() {
   }
 
   async function importFromJob(jobId: string) {
+    setImportingJobId(jobId);
+    setError("");
     try {
       const inv = await api.post<Invoice>(`/api/invoices/from-job/${jobId}`, {});
       router.push(`/dashboard/invoices/${inv.id}`);
       router.refresh();
     } catch (err) {
       if (err instanceof FetchError) setError(err.detail);
+      else setError("Error al generar factura desde trabajo");
+    } finally {
+      setImportingJobId(null);
     }
   }
 
@@ -151,15 +182,21 @@ export default function NewInvoicePage() {
               Importar desde trabajo completado
             </p>
             <div className="space-y-1">
-              {clientJobs.slice(0, 5).map((j) => (
+              {clientJobs.slice(0, 10).map((j) => (
                 <button
                   key={j.id}
                   type="button"
-                  className="block w-full text-left rounded px-2 py-1.5 text-sm hover:bg-muted/50"
+                  disabled={importingJobId !== null}
+                  className="block w-full text-left rounded px-2 py-1.5 text-sm hover:bg-muted/50 disabled:opacity-50"
                   onClick={() => importFromJob(j.id)}
                 >
-                  {j.title} — {j.scheduled_date}
-                  {j.price != null && ` · $${j.price.toFixed(2)}`}
+                  {importingJobId === j.id ? "Generando factura..." : (
+                    <>
+                      {j.title} — {j.scheduled_date}
+                      {j.price != null && ` · $${j.price.toFixed(2)}`}
+                      {j.property_name && <span className="text-muted-foreground"> · {j.property_name}</span>}
+                    </>
+                  )}
                 </button>
               ))}
             </div>
