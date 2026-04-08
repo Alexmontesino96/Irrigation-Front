@@ -43,10 +43,18 @@ export function Header() {
       : pathname.startsWith(item.href)
   );
 
+  const pageTitle = currentPage?.label ?? "IrrigationPro";
+
   return (
-    <header className="flex h-12 items-center gap-4 border-b border-border/60 bg-background px-4">
+    <header className="flex h-14 items-center gap-4 border-b border-border/60 bg-background px-4">
+      {/* Page title — mobile only */}
       <span className="text-sm font-medium md:hidden">
-        {currentPage?.label ?? "IrrigationCRM"}
+        {pageTitle}
+      </span>
+
+      {/* Page title — desktop (left side, after sidebar) */}
+      <span className="hidden md:inline text-sm font-medium text-foreground">
+        {pageTitle}
       </span>
 
       <div className="flex-1" />
