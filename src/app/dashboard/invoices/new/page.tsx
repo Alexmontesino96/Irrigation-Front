@@ -11,10 +11,11 @@ import type {
   Invoice,
   Client,
   Job,
+  JobMaterial,
   PaginatedResponse,
   InvoiceItemCreate,
 } from "@/lib/types";
-import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Plus, Trash2 } from "lucide-react";
 
 const selectClass =
   "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50";
@@ -41,7 +42,6 @@ export default function NewInvoicePage() {
 
   // Load for "import from job"
   const [clientJobs, setClientJobs] = useState<Job[]>([]);
-  const [importingJobId, setImportingJobId] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -89,6 +89,8 @@ export default function NewInvoicePage() {
 
   useEffect(() => {
     if (clientId) fetchClientJobs(clientId);
+    setImportedJobId(null);
+    setItems([{ description: "", quantity: 1, unit_price: 0 }]);
   }, [clientId, fetchClientJobs]);
 
   function addItem() {
@@ -105,18 +107,46 @@ export default function NewInvoicePage() {
     );
   }
 
-  async function importFromJob(jobId: string) {
-    setImportingJobId(jobId);
+  const [importedJobId, setImportedJobId] = useState<string | null>(null);
+
+  async function importFromJob(job: Job) {
     setError("");
     try {
-      const inv = await api.post<Invoice>(`/api/invoices/from-job/${jobId}`, {});
-      router.push(`/dashboard/invoices/${inv.id}`);
-      router.refresh();
+      // Fetch job materials
+      const matsRes = await api.get<JobMaterial[]>(
+        `/api/jobs/${job.id}/materials`
+      );
+
+      const newItems: InvoiceItemCreate[] = [];
+
+      // Add job service as first item
+      if (job.price) {
+        newItems.push({
+          description: job.title,
+          quantity: 1,
+          unit_price: job.price,
+        });
+      }
+
+      // Add materials
+      for (const mat of matsRes) {
+        newItems.push({
+          description: mat.name,
+          quantity: mat.quantity,
+          unit_price: mat.unit_cost,
+        });
+      }
+
+      if (newItems.length === 0) {
+        setError("El trabajo no tiene precio ni materiales para facturar");
+        return;
+      }
+
+      setItems(newItems);
+      setImportedJobId(job.id);
     } catch (err) {
       if (err instanceof FetchError) setError(err.detail);
-      else setError(err instanceof Error ? err.message : "Error al generar factura desde trabajo");
-    } finally {
-      setImportingJobId(null);
+      else setError("Error al importar datos del trabajo");
     }
   }
 
@@ -186,17 +216,18 @@ export default function NewInvoicePage() {
                 <button
                   key={j.id}
                   type="button"
-                  disabled={importingJobId !== null}
-                  className="block w-full text-left rounded px-2 py-1.5 text-sm hover:bg-muted/50 disabled:opacity-50"
-                  onClick={() => importFromJob(j.id)}
+                  disabled={importedJobId === j.id}
+                  className="flex items-center gap-2 w-full text-left rounded px-2 py-1.5 text-sm hover:bg-muted/50 disabled:opacity-60"
+                  onClick={() => importFromJob(j)}
                 >
-                  {importingJobId === j.id ? "Generando factura..." : (
-                    <>
-                      {j.title} — {j.scheduled_date}
-                      {j.price != null && ` · $${j.price.toFixed(2)}`}
-                      {j.property_name && <span className="text-muted-foreground"> · {j.property_name}</span>}
-                    </>
+                  {importedJobId === j.id && (
+                    <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                   )}
+                  <span className={importedJobId === j.id ? "text-emerald-600" : ""}>
+                    {j.title} — {j.scheduled_date}
+                    {j.price != null && ` · $${j.price.toFixed(2)}`}
+                    {j.property_name && <span className="text-muted-foreground"> · {j.property_name}</span>}
+                  </span>
                 </button>
               ))}
             </div>
