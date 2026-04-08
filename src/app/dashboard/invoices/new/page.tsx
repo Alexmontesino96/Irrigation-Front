@@ -114,7 +114,7 @@ export default function NewInvoicePage() {
       router.refresh();
     } catch (err) {
       if (err instanceof FetchError) setError(err.detail);
-      else setError("Error al generar factura desde trabajo");
+      else setError(err instanceof Error ? err.message : "Error al generar factura desde trabajo");
     } finally {
       setImportingJobId(null);
     }
